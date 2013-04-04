@@ -14,7 +14,8 @@ module.exports = function (grunt) {
   grunt.registerMultiTask("dustjs", "Grunt task to compile Dust.js templates.", function () {
     // Extend with the default options if none are specified
     var options = this.options({
-        fullname: false
+        fullname: false,
+        stripWhitespace: true,
     });
 
     this.files.forEach(function (file) {
@@ -23,7 +24,7 @@ module.exports = function (grunt) {
 
       srcFiles.forEach(function (srcFile) {
         var sourceCode = grunt.file.read(srcFile),
-            sourceCompiled = compile(sourceCode, srcFile, options.fullname);
+            sourceCompiled = compile(sourceCode, srcFile, options.fullname, options.stripWhitespace);
 
         taskOutput.push(sourceCompiled);
       });
@@ -36,10 +37,14 @@ module.exports = function (grunt) {
     });
   });
 
-  function compile (source, filepath, fullFilename) {
+  function compile (source, filepath, fullFilename, stripWhitespace) {
     var path = require("path"),
         dust = require("dustjs-linkedin"),
         name;
+
+    if (!stripWhitespace) {
+      dust.optimizers.format = function(ctx, node) { return node };
+    }
 
     if (typeof fullFilename === "function") {
       name = fullFilename(filepath);
@@ -53,7 +58,7 @@ module.exports = function (grunt) {
 
     if (name !== undefined) {
       try {
-        return dust.compile(source, name);
+        return dust.compile(source, name, stripWhitespace);
       } catch (e) {
         grunt.log.error(e);
         grunt.fail.warn("Dust.js failed to compile.");
